@@ -70,11 +70,13 @@ final class SavedPhotosViewController: UIViewController, PresenterThatCanDeleteA
     }
 
     override func loadView() {
+        title = "Saved"
         edgesForExtendedLayout = []
         view = PhotosCollectionView()
         castedView.collectionView.dataSource = collectionViewDelegateAndDataSource
         castedView.collectionView.delegate = collectionViewDelegateAndDataSource
         castedView.collectionView.addGestureRecognizer(singleTap())
+        castedView.collectionView.addGestureRecognizer(doubleTap())
         castedView.spinner.removeFromSuperview()
         navigationItem.rightBarButtonItem = selectButton
     }
@@ -90,7 +92,7 @@ final class SavedPhotosViewController: UIViewController, PresenterThatCanDeleteA
     }
 
     @objc func onPressSelect() {
-        navigationItem.leftBarButtonItem = cancelButton
+        navigationItem.leftBarButtonItem = deleteButton
         navigationItem.rightBarButtonItem = saveButton
         viewModel?.onPressSelect()
     }
@@ -101,10 +103,10 @@ final class SavedPhotosViewController: UIViewController, PresenterThatCanDeleteA
         viewModel?.onPressSave()
     }
 
-    @objc func onPressCancel() {
+    @objc func onPressDelete() {
         navigationItem.leftBarButtonItem = nil
         navigationItem.rightBarButtonItem = selectButton
-        viewModel?.onPressCancel()
+        viewModel?.onPressDelete()
     }
 
     private func setWidthOfCell() {
@@ -124,6 +126,21 @@ final class SavedPhotosViewController: UIViewController, PresenterThatCanDeleteA
         }
     }
 
+    private func doubleTap() -> UITapGestureRecognizer {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(processDoubleTap(sender:)))
+        tap.numberOfTapsRequired = 2
+        tap.numberOfTouchesRequired = 1
+        return tap
+    }
+
+    @objc private func processDoubleTap(sender: UITapGestureRecognizer) {
+        if (sender.state == .ended) {
+            guard let indexPath = getIndexPath(for: sender)
+                else { return }
+            viewModel?.onDoubleTap(at: indexPath)
+        }
+    }
+
     private func getIndexPath(for tap: UITapGestureRecognizer) -> IndexPath? {
         let point = tap.location(in: castedView.collectionView)
         guard let indexPath = castedView.collectionView.indexPathForItem(at: point)
@@ -135,7 +152,7 @@ final class SavedPhotosViewController: UIViewController, PresenterThatCanDeleteA
         title: "Select", style: .plain, target: self, action: #selector(onPressSelect))
     private lazy var saveButton = UIBarButtonItem(
         title: "Save", style: .plain, target: self, action: #selector(onPressSave))
-    private lazy var cancelButton = UIBarButtonItem(
-        title: "Cancel", style: .plain, target: self, action: #selector(onPressCancel)
+    private lazy var deleteButton = UIBarButtonItem(
+        title: "Delete", style: .plain, target: self, action: #selector(onPressDelete)
     )
 }

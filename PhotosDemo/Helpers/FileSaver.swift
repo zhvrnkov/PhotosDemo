@@ -36,12 +36,11 @@ class FileSaver {
         }
     }
 
-    static func save(data: [String: Data]) throws {
+    static func save(data: (String, Data)) throws {
         let docDir = try getDocDir()
-        try data.forEach { (name, data) in
-            let path = docDir.appendingPathComponent(name)
-            try data.write(to: path)
-        }
+        let (name, value) = data
+        let path = docDir.appendingPathComponent(name)
+        try value.write(to: path)
     }
 
     static func readFile(name: String) throws -> Data {

@@ -8,14 +8,47 @@ import UIKit
 
 typealias PhotoID = String
 
-class BaseViewModel {
+class BaseViewModel: PhotosProvider {
     var presenters: [() -> BasePresenter?] = []
-    func itemsCount() -> Int {
-        return photoUrls.count
+    var cache: [PhotoID: Data] = [:]
+    var photos: [PhotoURLs] {
+        switch mode {
+        case .query: return queryPhotoUrls
+        case .random: return randomPhotoUrls
+        }
     }
+
+    var randomPhotoUrls: [PhotoURLs] = []
+    var queryPhotoUrls: [PhotoURLs] = []
+
+    var queryPage: UInt16 = 1
+    var query: String = ""
+    var mode: WorkMode = .random {
+        didSet {
+            queryPage = 1
+            query = ""
+        }
+    }
+
+    var itemsPerPage: UInt8 = 4
+
 
     init() {
         initialLoad()
+    }
+
+    func getImageSetter(for row: Int, type: PhotoURLs.Extension) -> (ImagedCell) -> Void {
+        let url = type.get(url: photos[row])
+        let id = PhotoURLs.getID(of: url, type: type)
+        if let cached = cache[id] {
+            return getCachedSetter(id: id, cached: cached)
+        } else {
+            return getTaskSetter(url: url, type: type)
+        }
+    }
+
+    func getPhotosCount() -> Int {
+        return photos.count
     }
 
     func initialLoad() {
@@ -28,64 +61,6 @@ class BaseViewModel {
                     self?.initialLoad()
                 }
             }
-        }
-    }
-
-    var randomPhotoUrls: [PhotoURLs] = []
-    var queryPhotoUrls: [PhotoURLs] = []
-
-    var photos: [PhotoID: Data] = [:]
-
-    var queryPage: UInt16 = 1
-    var query: String = ""
-    var mode: WorkMode = .random {
-        didSet {
-            queryPage = 1
-            query = ""
-        }
-    }
-
-    func setImage(from data: Data, for cell: ImagedCell, where id: PhotoID) {
-        guard cell.imageID == id else { return }
-        DispatchQueue.main.async {
-            if let image = UIImage(data: data) {
-                cell.image = image
-            }
-        }
-    }
-
-    func setCached(url: URL, cached: Data) -> (ImagedCell) -> Void {
-        return { [weak self] in
-            let id = PhotoURLs.getID(of: url)
-            $0.imageID = id
-            self?.setImage(from: cached, for: $0, where: id)
-        }
-    }
-
-    func setTask(url: URL) -> (ImagedCell) -> Void {
-        return { cell in
-            let id = PhotoURLs.getID(of: url)
-            cell.image = nil
-            cell.imageID = id
-            ApiTaskProvider.getLoadTask(
-                for: url
-            ) { [weak self] result in
-                switch result {
-                case .success(let data):
-                    self?.photos[id] = data
-                    self?.setImage(from: data, for: cell, where: id)
-                case .failure(let error):
-                    self?.presenters.forEach { $0()?.show(error: error) }
-                }
-            }.resume()
-        }
-    }
-
-    var itemsPerPage: UInt8 = 10
-    var photoUrls: [PhotoURLs] {
-        switch mode {
-        case .query: return queryPhotoUrls
-        case .random: return randomPhotoUrls
         }
     }
 
@@ -121,16 +96,23 @@ class BaseViewModel {
         )
         let task = ApiTaskProvider.getQueryTask(
             params: params,
-            completion: taskHandler(completion: completion))
+            completion: taskHandler { [weak self] in
+                switch $0 {
+                case .success: self?.queryPage += 1
+                default: break
+                }
+                completion($0)
+            }
+        )
         task.resume()
     }
 
     func onLastCell() {
-        let beforeLoadCount = photoUrls.count
+        let beforeLoadCount = photos.count
         load { [weak self] result in
             switch result {
             case .success:
-                let newCount = self?.photoUrls.count ?? 0
+                let newCount = self?.photos.count ?? 0
                 guard newCount > beforeLoadCount
                     else { return }
                 let range = (beforeLoadCount..<(newCount)).map { IndexPath(row: $0, section: 0) }

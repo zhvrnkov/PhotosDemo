@@ -8,7 +8,7 @@ import Foundation
 protocol SliderViewModel: class {
     var presenter: SliderPresenter? { get set }
     var initialIndexPath: IndexPath { get }
-    func onLastCell()
+
     func itemsCount() -> Int
-    func getRegularImageSetter(for indexPath: IndexPath) -> (ImagedCell) -> Void
+    func getImageSetter(for indexPath: IndexPath) -> (ImagedCell) -> Void
 }

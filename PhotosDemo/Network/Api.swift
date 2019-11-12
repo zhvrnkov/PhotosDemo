@@ -38,8 +38,8 @@ class ApiTaskProvider {
         ) { completion(defaultRequestHandler($0, $1, $2)) }
     }
 
-    static let clientId = "7c59b4c9660de2d31e75a7b4466df1dc76b6adfa61902827f9e35123e32e4f8d"
-    // doo fee:"e93f2a1cc22f94a63aa40a25f541a2105f098aa21dd69a5577ab0539e9e3a1ea"
+    static let clientId = "e93f2a1cc22f94a63aa40a25f541a2105f098aa21dd69a5577ab0539e9e3a1ea"
+    // doo fee:"7c59b4c9660de2d31e75a7b4466df1dc76b6adfa61902827f9e35123e32e4f8d"
 }
 
 enum Requests {

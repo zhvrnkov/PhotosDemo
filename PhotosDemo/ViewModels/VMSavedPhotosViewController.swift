@@ -7,36 +7,43 @@ import Foundation
 import UIKit.UIImage
 
 final class VMSavedPhotosViewController: SavedPhotosViewModel {
+    let savedStorage: SavedPhotosStorage
     weak var presenter: PresenterThatCanDeleteAndSaveToIOSPhotoLibrary? {
         didSet {
+            guard presenter != nil else { return }
             presenter?.reload()
+            savedStorage.presenters.append({ [weak self] in self?.presenter })
         }
+    }
+
+    init(savedStorage: SavedPhotosStorage) {
+        self.savedStorage = savedStorage
     }
 
     func onPressSelect() {
         isSelecting = true
     }
 
+    func onLastCell() {}
+
     func onPressSave() {
         let selectedIds = selectedCells.map { ids[$0.row] }
-        let deletedIds: [PhotoID] = delete(ids: selectedIds)
-        let indexPathsToDelete: [IndexPath] = deleteIdsToIndexPaths(deletedIds, allIds: ids)
-        deletedIds.forEach { id in
-            self.items.removeValue(forKey: id)
-            self.ids.removeAll { $0 == id }
-        }
-        resetSelected()
-        isSelecting = false
-        presenter?.delete(indexPaths: indexPathsToDelete)
-    }
-
-    func onPressCancel() {
-        let selectedIds = selectedCells.map { ids[$0.row] }
-        let data = selectedIds.compactMap { items[$0] }
+        let data = selectedIds.compactMap { photos[$0] }
         let images = data.compactMap { UIImage(data: $0) }
         presenter?.save(images: images)
         resetSelected()
         isSelecting = false
+    }
+
+    func onPressDelete() {
+        let selectedIds = selectedCells.map { ids[$0.row] }
+        let idsBeforeDeletion = ids
+        let deletionResults: [Result<PhotoID, Error>] = savedStorage.delete(ids: selectedIds)
+        let indexPathsToDelete: [IndexPath] = deletionResultsToIndexPaths(deletionResults, allIds: idsBeforeDeletion)
+        resetSelected()
+        isSelecting = false
+        print(indexPathsToDelete)
+        presenter?.delete(indexPaths: indexPathsToDelete)
     }
 
     func onSingleTap(at indexPath: IndexPath, select: () -> Void, deselect: () -> Void) {
@@ -50,13 +57,22 @@ final class VMSavedPhotosViewController: SavedPhotosViewModel {
         }
     }
 
+    func onDoubleTap(at indexPath: IndexPath) {
+        guard !isSelecting,
+              let present = presenter?.present else { return }
+        let vm = VMSliderViewController(base: savedStorage, initial: indexPath)
+        let vc = ImageSliderViewController()
+        vc.viewModel = vm
+        present(vc)
+    }
+
     func itemsCount() -> Int {
         return ids.count
     }
 
     func getImageSetter(for indexPath: IndexPath) -> (ImagedCell) -> Void {
         let id = ids[indexPath.row]
-        guard let image = items[id],
+        guard let image = photos[id],
               let uiImage = UIImage(data: image)
             else { return { _ in } }
         return { cell in
@@ -65,30 +81,23 @@ final class VMSavedPhotosViewController: SavedPhotosViewModel {
         }
     }
 
-    func onLastCell() {
-        print(#function)
-    }
-
     func isSelected(at indexPath: IndexPath) -> Bool {
         return selectedCells.contains(indexPath)
     }
 
-    private func delete(ids: [PhotoID]) -> [PhotoID] {
-        return ids.compactMap { id in
+    private func deletionResultsToIndexPaths(
+        _ results: [Result<PhotoID, Error>],
+        allIds: [PhotoID]
+    ) -> [IndexPath] {
+        return results.compactMap { result in
             do {
-                try FileSaver.deleteFile(name: "\(id).\(PhotoURLs.Extension.thumb.rawValue)")
-                return id
+                let id = try result.get()
+                guard let index = allIds.firstIndex(of: id) else { print(id, allIds); return nil }
+                return IndexPath(row: index, section: 0)
             } catch {
-                print("ERROR: ", error)
+                print(error)
                 return nil
             }
-        }
-    }
-
-    private func deleteIdsToIndexPaths(_ delIds: [PhotoID], allIds: [PhotoID]) -> [IndexPath] {
-        return delIds.compactMap { id in
-            guard let index = allIds.firstIndex(of: id) else { return nil }
-            return IndexPath(row: index, section: 0)
         }
     }
 
@@ -109,24 +118,13 @@ final class VMSavedPhotosViewController: SavedPhotosViewModel {
         selectedCells.remove(at: index)
     }
 
-    init() {
-        items = fetchSaved()
-        ids = items.map { $0.key }
+    private var ids: [PhotoID] {
+        return savedStorage.ids
+    }
+    private var photos: [PhotoID: Data] {
+        return savedStorage.cache
     }
 
-    private func fetchSaved() -> [PhotoID: Data] {
-        do {
-            let t = (try FileSaver.getAll(of: PhotoURLs.Extension.thumb.rawValue))
-                .map { (PhotoURLs.fileNameToID($0.key), $0.value) }
-            return Dictionary(uniqueKeysWithValues: t)
-        } catch {
-            print("ERROR: ", error.localizedDescription)
-            return  [:]
-        }
-    }
-
-    private var ids: [PhotoID] = []
-    private var items: [PhotoID: Data] = [:]
     private var isSelecting = false
     private var selectedCells: [IndexPath] = []
 }

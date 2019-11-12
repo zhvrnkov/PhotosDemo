@@ -8,10 +8,11 @@ import UIKit
 
 class VMMainViewController: MainViewModel {
     private let base: BaseViewModel
+    private let savedStorage: SavedPhotosStorage
     weak var presenter: MainPresenter? {
         didSet {
             guard presenter != nil else { return }
-            base.presenters.append({ [weak self] in return self?.presenter })
+            base.presenters.append({ [weak self] in self?.presenter })
             presenter?.reload()
         }
     }
@@ -19,31 +20,26 @@ class VMMainViewController: MainViewModel {
     private var selectedCells: [IndexPath] = []
 
     func onPressSave() {
-        func namesToIDs(names: [String]) -> [PhotoID] {
-            return names.compactMap {
-                guard let t = $0.split(separator: Character(".")).first
-                    else { return nil }
-                return "\(t)"
-            }
-        }
         let ids = getIDsFor(indexPaths: selectedCells)
-        let names = ids.map { "\($0).\(PhotoURLs.Extension.thumb.rawValue)" }
-        let hashesToSave = namesToIDs(names: try! FileSaver.getToSave(names: names))
+        let idsToSave = try! FileSaver.getToSave(names: ids)
         let data: [String: Data] = Dictionary(uniqueKeysWithValues:
-            hashesToSave.compactMap {
-                if let data = base.photos[$0] {
-                    return ("\($0).\(PhotoURLs.Extension.thumb.rawValue)", data)
+            idsToSave.compactMap {
+                if let data = base.cache[$0] {
+                    return ($0, data)
                 } else {
                     return nil
                 }
             }
         )
-        print("toSave: ", data.keys)
-        do {
-            try FileSaver.save(data: data)
-        } catch {
-            print("ERROR: ", error)
+        data.forEach { (name, data) in
+            do {
+                try FileSaver.save(data: (name, data))
+                savedStorage.cache[name] = data
+            } catch {
+                print("ERROR: ", error)
+            }
         }
+        savedStorage.reloadPresenters()
         resetSelected()
         isSelecting = false
     }
@@ -62,12 +58,13 @@ class VMMainViewController: MainViewModel {
         return selectedCells.contains(indexPath)
     }
 
-    init(base: BaseViewModel) {
+    init(base: BaseViewModel, savedStorage: SavedPhotosStorage) {
         self.base = base
+        self.savedStorage = savedStorage
     }
 
     func itemsCount() -> Int {
-        return base.itemsCount()
+        return base.getPhotosCount()
     }
 
     func onDoubleTap(at indexPath: IndexPath) {
@@ -91,12 +88,7 @@ class VMMainViewController: MainViewModel {
     }
 
     func getImageSetter(for indexPath: IndexPath) -> (ImagedCell) -> Void {
-        let url = base.photoUrls[indexPath.row].thumb
-        if let cached = base.photos[PhotoURLs.getID(of: url)] {
-            return base.setCached(url: url, cached: cached)
-        } else {
-            return base.setTask(url: url)
-        }
+        return base.getImageSetter(for: indexPath.row, type: .thumb)
     }
 
     func onPressSearchButton(query: String) {
@@ -118,7 +110,7 @@ class VMMainViewController: MainViewModel {
         base.query = query
         base.mode = .random
         resetSelected()
-        if base.photoUrls.isEmpty {
+        if base.photos.isEmpty {
             base.load { [weak self] result in
                 switch result {
                 case .success: self?.presenter?.reload()
@@ -164,9 +156,9 @@ class VMMainViewController: MainViewModel {
 
     func getIDsFor(indexPaths: [IndexPath]) -> [PhotoID] {
         return indexPaths.compactMap {
-            guard let url = base.photoUrls[safe: $0.row]?.thumb
+            guard let url = base.photos[safe: $0.row]?.thumb
                 else { return nil }
-            return PhotoURLs.getID(of: url)
+            return PhotoURLs.getID(of: url, type: .thumb)
         }
     }
 }

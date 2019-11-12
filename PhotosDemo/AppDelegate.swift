@@ -20,9 +20,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     ) -> Bool {
         window = UIWindow(frame: UIScreen.main.bounds)
         let tabBarCon = UITabBarController(nibName: nil, bundle: nil)
+        let base = BaseViewModel()
+        let storage = SavedPhotosStorage()
         tabBarCon.viewControllers = [
-            UINavigationController(rootViewController: getMain(vm: VMMainViewController(base: BaseViewModel()))),
-            UINavigationController(rootViewController: getSaved(vm: VMSavedPhotosViewController()))
+            UINavigationController(rootViewController: getMain(vm: VMMainViewController(base: base, savedStorage: storage))),
+            UINavigationController(rootViewController: getSaved(vm: VMSavedPhotosViewController(savedStorage: storage)))
         ]
         window?.rootViewController = tabBarCon
         window?.makeKeyAndVisible()

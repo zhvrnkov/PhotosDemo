@@ -9,6 +9,7 @@ protocol SavedPhotosViewModel: PhotosCollectionViewModel {
     var presenter: PresenterThatCanDeleteAndSaveToIOSPhotoLibrary? { get set }
     func onPressSelect()
     func onPressSave()
-    func onPressCancel()
+    func onPressDelete()
     func onSingleTap(at indexPath: IndexPath, select: () -> Void, deselect: () -> Void)
+    func onDoubleTap(at indexPath: IndexPath)
 }

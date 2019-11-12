@@ -11,12 +11,19 @@ class FileSaverTest: XCTestCase {
     lazy var data = Dictionary(uniqueKeysWithValues: (0..<10).map {
         ("\($0).\(ext)", "\($0)".data(using: .utf8)!)
     })
+
+    private func save(data: [String: Data]) throws {
+        try data.forEach { (name, data) in
+            try FileSaver.save(data: (name, data))
+        }
+    }
+
     func testSave() {
-        XCTAssertNoThrow(try FileSaver.save(data: data))
+        XCTAssertNoThrow(try save(data: data))
     }
 
     func testFilter() {
-        XCTAssertNoThrow(try FileSaver.save(data: data))
+        XCTAssertNoThrow(try save(data: data))
         do {
             let output = try FileSaver.getToSave(names: data.map {
                 $0.key
@@ -28,14 +35,14 @@ class FileSaverTest: XCTestCase {
     }
 
     func testRead() {
-        try? FileSaver.save(data: data)
+        try? save(data: data)
         try? data.forEach {
             XCTAssertNoThrow(try FileSaver.readFile(name: $0.key))
         }
     }
 
     func testGetAll() {
-        try? FileSaver.save(data: data)
+        try? save(data: data)
         do {
             let all = try FileSaver.getAll(of: ext)
             XCTAssertEqual(all.count, data.count)
@@ -45,7 +52,7 @@ class FileSaverTest: XCTestCase {
     }
 
     func testDeleting() {
-        try? FileSaver.save(data: data)
+        try? save(data: data)
         do {
             let all = try FileSaver.getAll(of: ext)
             XCTAssertEqual(all.count, data.count)

@@ -6,37 +6,25 @@
 import Foundation
 
 class VMSliderViewController: SliderViewModel {
-    private let base: BaseViewModel
+    private let base: PhotosProvider
     let initialIndexPath: IndexPath
     weak var presenter: SliderPresenter? {
         didSet {
-            guard presenter != nil else { return }
-            base.presenters.append({ [weak self] in return self?.presenter })
             presenter?.reload()
         }
     }
 
-    init(base: BaseViewModel, initial indexPath: IndexPath) {
+    init(base: PhotosProvider, initial indexPath: IndexPath) {
         self.base = base
         self.initialIndexPath = indexPath
     }
 
-    func onLastCell() {
-        print(#function)
-        base.onLastCell()
-    }
-
     func itemsCount() -> Int {
-        return base.itemsCount()
+        return base.getPhotosCount()
     }
 
-    func getRegularImageSetter(for indexPath: IndexPath) -> (ImagedCell) -> Void {
-        let url = base.photoUrls[indexPath.row].regular
-        if let cached = base.photos[PhotoURLs.getID(of: url)] {
-            return base.setCached(url: url, cached: cached)
-        } else {
-            return base.setTask(url: url)
-        }
+    func getImageSetter(for indexPath: IndexPath) -> (ImagedCell) -> Void {
+        return base.getImageSetter(for: indexPath.row, type: .regular)
     }
 
     deinit {

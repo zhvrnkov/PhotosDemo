@@ -47,8 +47,6 @@ class MainViewController: UIViewController, MainPresenter {
 
     func update(indexPaths: [IndexPath]) {
         DispatchQueue.main.async { [weak self] in
-            //self?.castedView.collectionView.reloadData()
-            print(self?.viewModel?.itemsCount(), indexPaths)
             self?.castedView.collectionView.insertItems(at: indexPaths)
         }
     }
@@ -65,6 +63,7 @@ class MainViewController: UIViewController, MainPresenter {
     }
 
     override func loadView() {
+        title = "Main"
         edgesForExtendedLayout = []
         collectionViewDelegateAndDataSource.owner = self
         view = PhotosCollectionViewWithSearchBar()
@@ -81,11 +80,6 @@ class MainViewController: UIViewController, MainPresenter {
         super.viewWillLayoutSubviews()
         viewModel?.onChangeScreen(size: view.frame.size)
         setWidthOfCell()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        reload()
     }
 
     @objc func onPressSelect() {

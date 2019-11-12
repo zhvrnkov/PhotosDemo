@@ -12,18 +12,19 @@ struct PhotoURLs: Decodable, Hashable {
     let small: URL
     let thumb: URL
 
-    static func getID(of url: URL) -> PhotoID {
-        return url.lastPathComponent
-    }
-
-    static func fileNameToID(_ name: String) -> String {
-        guard let beforeDot = name.split(separator: Character(".")).first
-            else { return name }
-        return String(beforeDot)
+    static func getID(of url: URL, type: Extension) -> PhotoID {
+        return "\(url.lastPathComponent).\(type.rawValue)"
     }
 
     enum Extension: String {
-        case thumb = "jpeg"
-        case regualr
+        case thumb
+        case regular
+
+        func get(url: PhotoURLs) -> URL {
+            switch self {
+            case .regular: return url.regular
+            case .thumb: return url.thumb
+            }
+        }
     }
 }

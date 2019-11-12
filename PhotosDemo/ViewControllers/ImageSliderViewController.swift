@@ -87,11 +87,8 @@ extension ImageSliderViewController: UICollectionViewDataSource, UICollectionVie
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath)
         if let castedCell = cell as? ImageCollectionViewCellWithSpinner,
-           let configuration = viewModel?.getRegularImageSetter(for: indexPath) {
+           let configuration = viewModel?.getImageSetter(for: indexPath) {
             configuration(castedCell)
-        }
-        if isLastCell(indexPath: indexPath) {
-            viewModel?.onLastCell()
         }
         return cell
     }
