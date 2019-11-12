@@ -51,7 +51,6 @@ class VMMainViewController: MainViewModel {
 
     func onPressSelect() {
         isSelecting = true
-        print(#function)
     }
 
     func isSelected(at indexPath: IndexPath) -> Bool {

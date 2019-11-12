@@ -64,8 +64,6 @@ final class SavedPhotosViewController: UIViewController, PresenterThatCanDeleteA
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         if let error = error {
             print(error)
-        } else {
-            print(#function)
         }
     }
 

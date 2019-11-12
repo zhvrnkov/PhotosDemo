@@ -18,8 +18,22 @@ class BaseViewModel: PhotosProvider {
         }
     }
 
-    var randomPhotoUrls: [PhotoURLs] = []
-    var queryPhotoUrls: [PhotoURLs] = []
+    var randomPhotoUrls: [PhotoURLs] = [] {
+        willSet {
+            randomPhotoUrlsCountBeforeSet = randomPhotoUrls.count
+        }
+        didSet {
+            handleUpdate(was: randomPhotoUrlsCountBeforeSet, now: randomPhotoUrls.count)
+        }
+    }
+    var queryPhotoUrls: [PhotoURLs] = [] {
+        willSet {
+            queryPhotoUrlsCountBeforeSet = queryPhotoUrls.count
+        }
+        didSet {
+            handleUpdate(was: queryPhotoUrlsCountBeforeSet, now: queryPhotoUrls.count)
+        }
+    }
 
     var queryPage: UInt16 = 1
     var query: String = ""
@@ -31,7 +45,8 @@ class BaseViewModel: PhotosProvider {
     }
 
     var itemsPerPage: UInt8 = 4
-
+    private var randomPhotoUrlsCountBeforeSet = 0
+    private var queryPhotoUrlsCountBeforeSet = 0
 
     init() {
         initialLoad()
@@ -65,7 +80,6 @@ class BaseViewModel: PhotosProvider {
     }
 
     func load(completion: @escaping (Result<Void, Error>) -> Void) {
-        print(#function)
         switch mode {
         case .query: loadQuery(completion: completion)
         case .random: loadRandom(completion: completion)
@@ -108,15 +122,9 @@ class BaseViewModel: PhotosProvider {
     }
 
     func onLastCell() {
-        let beforeLoadCount = photos.count
         load { [weak self] result in
             switch result {
-            case .success:
-                let newCount = self?.photos.count ?? 0
-                guard newCount > beforeLoadCount
-                    else { return }
-                let range = (beforeLoadCount..<(newCount)).map { IndexPath(row: $0, section: 0) }
-                self?.presenters.forEach { $0()?.update(indexPaths: range) }
+            case .success: ()
             case .failure(let error):
                 self?.presenters.forEach { $0()?.show(error: error) }
             }
@@ -141,6 +149,24 @@ class BaseViewModel: PhotosProvider {
                 completion(.failure(error))
             }
         }
+    }
+
+    private func handleUpdate(was: Int, now: Int) {
+        if was < now {
+            let range = (was...(now - 1))
+            let indexPaths = getIndexPaths(for: range)
+            presenters.forEach {
+                $0()?.update(indexPaths: indexPaths)
+            }
+        } else {
+            presenters.forEach {
+                $0()?.reload()
+            }
+        }
+    }
+
+    private func getIndexPaths(for range: ClosedRange<Int>) -> [IndexPath] {
+        return range.map { IndexPath(row: $0, section: 0) }
     }
 
     enum WorkMode {
