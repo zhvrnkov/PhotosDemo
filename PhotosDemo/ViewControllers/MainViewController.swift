@@ -163,17 +163,9 @@ extension MainViewController: PhotosCollectionViewOwner {
 }
 
 extension MainViewController: UISearchBarDelegate {
-    public func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-        viewModel?.onEditSearchBar(query: searchBar.text ?? "")
-    }
-
     public func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
         viewModel?.onPressSearchButton(query: searchBar.text ?? "")
-    }
-
-    public func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        viewModel?.onEditSearchBar(query: searchBar.text ?? "")
     }
 }
 

@@ -12,7 +12,6 @@ protocol MainViewModel: PhotosCollectionViewModel {
     func onDoubleTap(at indexPath: IndexPath)
     func onSingleTap(at indexPath: IndexPath, select: () -> Void, deselect: () -> Void)
     func onPressSearchButton(query: String)
-    func onEditSearchBar(query: String)
     func onChangeScreen(size: CGSize)
     func onLastCell()
 
